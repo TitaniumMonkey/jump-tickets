@@ -106,15 +106,28 @@ defmodule JumpTickets.External.Notion do
         end
       end)
 
-    result =
-      Notionex.API.update_page_properties(%{
-        page_id: page_id,
-        properties: notion_properties
-      })
+    # Add retry logic
+    retry_with_backoff(fn ->
+      result =
+        Notionex.API.update_page_properties(%{
+          page_id: page_id,
+          properties: notion_properties
+        })
 
-    updated_ticket = result |> JumpTickets.External.Notion.Parser.parse_ticket_page()
+      updated_ticket = result |> JumpTickets.External.Notion.Parser.parse_ticket_page()
+      {:ok, updated_ticket}
+    end)
+  end
 
-    {:ok, updated_ticket}
+  # Retry helper with exponential backoff
+  defp retry_with_backoff(fun, retries \\ 3, delay \\ 1000) do
+    case fun.() do
+      {:ok, result} -> {:ok, result}
+      {:error, %HTTPoison.Error{reason: :timeout}} when retries > 0 ->
+        Process.sleep(delay)
+        retry_with_backoff(fun, retries - 1, delay * 2)
+      error -> error
+    end
   end
 end
 
@@ -147,7 +160,8 @@ defmodule JumpTickets.External.Notion.Parser do
       intercom_conversations:
         Map.get(properties, "Intercom Conversations") |> extract_rich_text(),
       summary: Map.get(properties, "children") |> extract_rich_text(),
-      slack_channel: Map.get(properties, "Slack Channel") |> extract_rich_text()
+      slack_channel: Map.get(properties, "Slack Channel") |> extract_rich_text(),
+      done: Map.get(properties, "Done") |> extract_done()
     }
   end
 
@@ -180,4 +194,9 @@ defmodule JumpTickets.External.Notion.Parser do
   end
 
   defp extract_rich_text(_), do: nil
+
+  # Add this function to extract the Done checkbox value
+  defp extract_done(nil), do: false
+  defp extract_done(%{"checkbox" => value}), do: value
+  defp extract_done(_), do: false
 end

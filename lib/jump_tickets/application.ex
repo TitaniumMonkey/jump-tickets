@@ -18,7 +18,8 @@ defmodule JumpTickets.Application do
       # {JumpTickets.Worker, arg},
       # Start to serve requests, typically the last entry
       JumpTicketsWeb.Endpoint,
-      JumpTickets.IntegrationRequest.Coordinator
+      JumpTickets.IntegrationRequest.Coordinator,
+      JumpTickets.NotionDonePoller
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

@@ -4,6 +4,7 @@ defmodule JumpTickets.Ticket.DoneNotifier do
   """
 
   alias JumpTickets.External.{Slack, Intercom}
+  alias Logger
 
   @spec notify_ticket_done(%{
           :intercom_conversations => nil | binary(),
@@ -27,7 +28,12 @@ defmodule JumpTickets.Ticket.DoneNotifier do
     with {:ok, _} <- post_slack_message(slack_channel, slack_message) do
       :ok
     else
-      error -> IO.puts("Failed to notify Slack: #{inspect(error)}")
+      {:error, reason} -> 
+        Logger.error("Failed to notify Slack for ticket #{ticket_id}: #{inspect(reason)}")
+        {:error, reason}
+      error -> 
+        Logger.error("Unexpected error notifying Slack for ticket #{ticket_id}: #{inspect(error)}")
+        {:error, error}
     end
 
     # Post to each linked Intercom conversation
@@ -41,7 +47,7 @@ defmodule JumpTickets.Ticket.DoneNotifier do
           :ok
 
         {:error, err} ->
-          IO.puts("Failed to notify Intercom conversation #{conversation_id}: #{inspect(err)}")
+          Logger.error("Failed to notify Intercom conversation #{conversation_id}: #{inspect(err)}")
       end
     end)
 
@@ -53,8 +59,7 @@ defmodule JumpTickets.Ticket.DoneNotifier do
   defp post_slack_message(slack_channel, message) do
     case URI.parse(slack_channel) do
       %URI{path: path} ->
-        parts = String.split(path, "/")
-        channel_id = Enum.at(parts, 3)
+        channel_id = path |> String.split("/") |> Enum.reject(&(&1 == "")) |> List.last()
         Slack.post_message(channel_id, message)
 
       _ ->

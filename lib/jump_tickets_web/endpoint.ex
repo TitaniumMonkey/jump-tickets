@@ -1,3 +1,4 @@
+
 defmodule JumpTicketsWeb.Endpoint do
   use Phoenix.Endpoint, otp_app: :jump_tickets
 
