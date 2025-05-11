@@ -1,2 +1,8 @@
 .env
 .env.prod
+priv/static/robots-9e2c81b0855bbff2baa8371bc4a78186.txt.gz
+priv/static/robots.txt.gz
+sqlite/jump_tickets_dev.db
+sqlite/prod.sqlite
+sqlite/prod.sqlite-shm
+sqlite/prod.sqlite-wal
