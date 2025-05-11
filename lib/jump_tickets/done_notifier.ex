@@ -59,7 +59,8 @@ defmodule JumpTickets.Ticket.DoneNotifier do
   defp post_slack_message(slack_channel, message) do
     case URI.parse(slack_channel) do
       %URI{path: path} ->
-        channel_id = path |> String.split("/") |> Enum.reject(&(&1 == "")) |> List.last()
+        parts = String.split(path, "/")
+        channel_id = Enum.at(parts, 3)
         Slack.post_message(channel_id, message)
 
       _ ->
